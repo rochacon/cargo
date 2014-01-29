@@ -55,6 +55,7 @@ events {
 }
 
 http {
+    server_names_hash_bucket_size 256;
     include /home/git/hosts/*.conf;
 }
 EOF
