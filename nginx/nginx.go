@@ -1,11 +1,11 @@
 package nginx
 
 import (
-    "fmt"
-    // "log"
-    "os"
-    "os/exec"
-    "text/template"
+	"fmt"
+	// "log"
+	"os"
+	"os/exec"
+	"text/template"
 )
 
 const tmpl = `
@@ -27,41 +27,41 @@ server {
     }
 }
 `
+
 type Upstream struct {
-    UpstreamName string
-    Servers   []string
-    Hostname string
+	UpstreamName string
+	Servers      []string
+	Hostname     string
 }
 
 func AddServer(upstreamname string, servers []string, hostname string) error {
-    // log.Println("nginx.AddServer", upstreamname, servers, hostname)
+	// log.Println("nginx.AddServer", upstreamname, servers, hostname)
 
-    t := template.Must(template.New("upstream").Parse(tmpl))
+	t := template.Must(template.New("upstream").Parse(tmpl))
 
-     serverfile := fmt.Sprintf("/home/git/hosts/%s.conf", hostname)
-    // log.Println("nginx.AddServer", "serverfile", serverfile)
-    fp, err := os.Create(serverfile)
-    if err != nil {
-        return err
-    }
-    defer fp.Close()
+	serverfile := fmt.Sprintf("/home/git/hosts/%s.conf", hostname)
+	// log.Println("nginx.AddServer", "serverfile", serverfile)
+	fp, err := os.Create(serverfile)
+	if err != nil {
+		return err
+	}
+	defer fp.Close()
 
-    u := Upstream{
-        upstreamname,
-        servers,
-        hostname,
-    }
-    err = t.Execute(fp, u)
-    if err != nil {
-        return err
-    }
-    return nil
+	u := Upstream{
+		upstreamname,
+		servers,
+		hostname,
+	}
+	err = t.Execute(fp, u)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func Reload() error {
-    cmd := exec.Command("nginx -s reload")
-    _, err := cmd.CombinedOutput()
-    // log.Println("nginx.Reload", output)
-    return err
+	cmd := exec.Command("nginx -s reload")
+	_, err := cmd.CombinedOutput()
+	// log.Println("nginx.Reload", output)
+	return err
 }
-
