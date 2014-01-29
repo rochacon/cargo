@@ -67,8 +67,6 @@ func main() {
 	runner_opts := strings.Split(fmt.Sprintf("run -d -i -e SLUG_URL=%s -e PORT=8000 -p %d:8000 flynn/slugrunner start web", image_name, container_port), " ")
 	// log.Println("main", "slugrunner", "runner_opts", runner_opts)
 	slugrunner := exec.Command("docker", runner_opts...)
-	slugrunner.Stdout = os.Stdout
-	slugrunner.Stdin = os.Stdin
 	if err := slugrunner.Run(); err != nil {
 		log.Fatal(err)
 	}
