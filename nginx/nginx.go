@@ -16,6 +16,7 @@ upstream {{.UpstreamName}} {
 }
 
 server {
+    listen 80;
     server_name {{.Hostname}};
 
     location / {
