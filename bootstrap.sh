@@ -2,6 +2,10 @@
 # This script will setup your server from scratch
 set -e
 
+# FIXME configure these variables
+BASE_DOMAIN="localhost"
+BUCKET="my-slug-bucket-container" # XXX right now slugs will be public, remember, pre-alpha software
+
 # Setup Docker
 curl -sL http://get.docker.io/ | bash
 docker pull flynn/slugbuilder
@@ -34,7 +38,7 @@ respawn
 console log
 chdir /home/git
 
-exec /go/bin/gitreceived -p 2222 -k /home/git/keys -r /home/git/repositories /home/git/.ssh/id_rsa /go/bin/cargo
+exec /go/bin/gitreceived -p 2222 -k /home/git/keys -r /home/git/repositories /home/git/.ssh/id_rsa "/go/bin/cargo -bucket $BUCKET -d $BASE_DOMAIN"
 EOF
 
 start gitreceived
