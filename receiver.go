@@ -7,11 +7,11 @@ import (
 	"flag"
 	"fmt"
 	"github.com/rochacon/cargo/nginx"
+	"github.com/rochacon/cargo/slug"
 	"log"
 	"math/rand"
 	"os"
-	"os/exec"
-	"strings"
+	"strconv"
 	"time"
 )
 
@@ -28,7 +28,13 @@ func getRandomPort() (port int) {
 func main() {
 	base_domain := flag.String("d", "localhost", "Base domain")
 	bucket_name := flag.String("bucket", "", "AWS S3 bucket name")
+	aws_key := flag.String("aws-key", "", "AWS access key")
+	aws_secret := flag.String("aws-secret", "", "AWS secret key")
 	flag.Parse()
+
+	slug.AWS_ACCESS_KEY_ID = *aws_key
+	slug.AWS_SECRET_ACCESS_KEY = *aws_secret
+	slug.BUCKET_NAME = *bucket_name
 
 	if len(flag.Args()) < 4 {
 		flag.Usage()
@@ -36,23 +42,11 @@ func main() {
 	}
 
 	app_name := flag.Arg(1)
-	app_name_sha1 := sha1.Sum([]byte(app_name))
-	// log.Println("app_name_sha1", fmt.Sprintf("%x", app_name_sha1))
-	app_name_for_url := fmt.Sprintf("%x", app_name_sha1)[:10]
-	// log.Println("app_name_for_url", app_name_for_url)
 
-	// XXX change this to your bucket URL and allow access for GET and PUT keys to your server
-	var bucket = "https://s3.amazonaws.com/" + *bucket_name
-	var image_name = fmt.Sprintf("%s/%s.tgz", bucket, app_name_for_url)
+	fmt.Println("-----> Building slug")
 
-	var container_port = getRandomPort()
-
-	fmt.Println("-----> Builing image")
-	// TODO use slugbuilder cache
-	slugbuilder := exec.Command("docker", strings.Split("run -i -a stdin -a stdout flynn/slugbuilder "+image_name, " ")...)
-	slugbuilder.Stdout = os.Stdout
-	slugbuilder.Stdin = os.Stdin
-	if err := slugbuilder.Run(); err != nil {
+	slug_url, err := slug.Build(app_name, os.Stdin)
+	if err != nil {
 		log.Fatal(err)
 	}
 
@@ -64,27 +58,32 @@ func main() {
 	// for _, process := range processes {
 	//   go docker.Run(-d -i -e SLUG_URL="$IMAGE" -e PORT=8000 -p $PORT:8000 flynn/slugrunner start web)
 	// }
-	runner_opts := strings.Split(fmt.Sprintf("run -d -i -e SLUG_URL=%s -e PORT=8000 -p %d:8000 flynn/slugrunner start web", image_name, container_port), " ")
-	// log.Println("main", "slugrunner", "runner_opts", runner_opts)
-	slugrunner := exec.Command("docker", runner_opts...)
-	if err := slugrunner.Run(); err != nil {
+
+	var container_port = strconv.Itoa(getRandomPort())
+	container, err := slug.Run(app_name, slug_url, "web", container_port)
+	if err != nil {
 		log.Fatal(err)
 	}
 
 	// TODO for web processes
 	// TODO inspect container and retrieve IP (no need to expose container port)
+	var app_name_sha1 = sha1.Sum([]byte(app_name))
+	var app_name_for_url = fmt.Sprintf("%x", app_name_sha1)[:10]
 	var hostname = fmt.Sprintf("%s.%s", app_name_for_url, *base_domain)
-	var container_ip = "127.0.0.1"
-
-	// log.Println("main", "container_ip", container_ip, "container_port", container_port)
 
 	// add container as a server to local NGINX
-	nginx.AddServer(
+	err = nginx.AddServer(
 		app_name,
-		[]string{fmt.Sprintf("%s:%d", container_ip, container_port)},
+		[]string{fmt.Sprintf("%s:%s", container.NetworkSettings.IPAddress, container_port)},
 		hostname,
 	)
-	nginx.Reload()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err = nginx.Reload(); err != nil {
+		log.Fatal(err)
+	}
 
 	fmt.Println("-----> http://" + hostname)
 }

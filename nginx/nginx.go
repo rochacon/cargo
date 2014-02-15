@@ -36,12 +36,9 @@ type Upstream struct {
 }
 
 func AddServer(upstreamname string, servers []string, hostname string) error {
-	// log.Println("nginx.AddServer", upstreamname, servers, hostname)
-
 	t := template.Must(template.New("upstream").Parse(tmpl))
 
 	serverfile := fmt.Sprintf("/home/git/hosts/%s.conf", hostname)
-	// log.Println("nginx.AddServer", "serverfile", serverfile)
 	fp, err := os.Create(serverfile)
 	if err != nil {
 		return err
@@ -61,8 +58,6 @@ func AddServer(upstreamname string, servers []string, hostname string) error {
 }
 
 func Reload() error {
-	cmd := exec.Command("nginx -s reload")
-	_, err := cmd.CombinedOutput()
-	// log.Println("nginx.Reload", output)
-	return err
+	cmd := exec.Command("sudo", "/usr/sbin/nginx", "-s", "reload")
+	return cmd.Run()
 }
