@@ -22,7 +22,7 @@ export PATH=/usr/local/go/bin:$PATH
 export GOROOT=/usr/local/go
 export GOPATH=/go
 
-apt-get install -yq git
+apt-get install -yq git bzr
 go get -v github.com/flynn/gitreceive-next/gitreceived
 go get -v github.com/rochacon/cargo
 
