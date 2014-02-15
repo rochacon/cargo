@@ -12,6 +12,8 @@ BUCKET=""
 curl -sL http://get.docker.io/ | bash
 docker pull flynn/slugbuilder
 docker pull flynn/slugrunner
+echo 'DOCKER_OPTS="-H tcp://127.0.0.1:4243 -H unix:///var/run/docker.sock"' > /etc/default/docker
+restart docker
 
 # Setup Cargo
 curl -sL https://go.googlecode.com/files/go1.2.linux-amd64.tar.gz | tar xzC /usr/local
@@ -41,20 +43,21 @@ respawn
 console log
 chdir /home/git
 
-exec /go/bin/gitreceived \
-        -p 2222 \
-        -k /home/git/keys \
-        -r /home/git/repositories \
-        /home/git/.ssh/id_rsa \
+exec /go/bin/gitreceived \\
+        -p 2222 \\
+        -k /home/git/keys \\
+        -r /home/git/repositories \\
+        /home/git/.ssh/id_rsa \\
         "/go/bin/cargo -bucket $BUCKET -d $BASE_DOMAIN -aws-key $AWS_ACCESS_KEY_ID -aws-secret $AWS_SECRET_ACCESS_KEY"
 EOF
 start cargo
 
+# Setup NGINX
 apt-get install -y nginx
 cat >/etc/nginx/nginx.conf <<EOF
 daemon on;
 error_log error.log;
-pid /var/run/nginx/nginx.pid;
+pid /var/run/nginx.pid;
 
 events {
     use epoll;
