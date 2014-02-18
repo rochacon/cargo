@@ -20,12 +20,14 @@ func main() {
 	aws_secret := flag.String("aws-secret", "", "AWS secret key")
 	base_domain := flag.String("d", "localhost", "Base domain")
 	bucket_name := flag.String("bucket", "", "AWS S3 bucket name")
+	runner_endpoint := flag.String("runner", "http://127.0.0.1:4243", "Runner Docker API endpoint")
 	s3_endpoint := flag.String("s3-endpoint", "https://s3.amazonaws.com", "AWS S3 API endpoint")
 	flag.Parse()
 
 	slug.AWS_ACCESS_KEY_ID = *aws_key
 	slug.AWS_SECRET_ACCESS_KEY = *aws_secret
 	slug.BUCKET_NAME = *bucket_name
+	slug.RUNNER_ENDPOINT = *runner_endpoint
 	slug.S3_ENDPOINT = *s3_endpoint
 
 	if len(flag.Args()) < 4 {
@@ -35,8 +37,7 @@ func main() {
 
 	app_name := flag.Arg(1)
 
-	fmt.Println("-----> Building slug")
-
+	// Build slug
 	slug_url, err := slug.Build(app_name, os.Stdin)
 	if err != nil {
 		log.Fatal(err)
@@ -66,7 +67,7 @@ func main() {
 	port := getPort(container.NetworkSettings.Ports)
 	err = nginx.AddServer(
 		app_name,
-		[]string{fmt.Sprintf("%s:%s", container.NetworkSettings.IPAddress, port)},
+		[]string{fmt.Sprintf("%s:%s", container.NetworkSettings.IPAddress, port.Port())},
 		hostname,
 	)
 	if err != nil {
@@ -77,7 +78,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println("-----> Application deployed:")
+	fmt.Println("-----> Application deployed")
 	fmt.Println("       http://" + hostname)
 }
 

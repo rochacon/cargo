@@ -18,8 +18,8 @@ import (
 var AWS_ACCESS_KEY_ID string
 var AWS_SECRET_ACCESS_KEY string
 var BUCKET_NAME string
-var RUNNER_URL = "http://127.0.0.1:4243"
-var S3_ENDPOINT = "https://s3.amazonaws.com"
+var RUNNER_ENDPOINT string
+var S3_ENDPOINT string
 
 // Build builds the slug with the received tar as content and upload it to S3
 func Build(name string, tar io.Reader) (string, error) {
@@ -57,7 +57,7 @@ func Build(name string, tar io.Reader) (string, error) {
 
 // Run runs a slug process
 func Run(name string, slugUrl string, process string) (*dcli.Container, error) {
-	docker, err := dcli.NewClient(RUNNER_URL)
+	docker, err := dcli.NewClient(RUNNER_ENDPOINT)
 	if err != nil {
 		return nil, err
 	}
