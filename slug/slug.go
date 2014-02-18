@@ -8,16 +8,18 @@ import (
 	"io"
 	"launchpad.net/goamz/aws"
 	"launchpad.net/goamz/s3"
+	"math/rand"
 	"os"
 	"os/exec"
+	"strconv"
+	"time"
 )
 
 var AWS_ACCESS_KEY_ID string
 var AWS_SECRET_ACCESS_KEY string
 var BUCKET_NAME string
 var RUNNER_URL = "http://127.0.0.1:4243"
-
-const S3_ENDPOINT = "https://s3.amazonaws.com"
+var S3_ENDPOINT = "https://s3.amazonaws.com"
 
 // Build builds the slug with the received tar as content and upload it to S3
 func Build(name string, tar io.Reader) (string, error) {
@@ -54,11 +56,13 @@ func Build(name string, tar io.Reader) (string, error) {
 }
 
 // Run runs a slug process
-func Run(name string, slugUrl string, process string, port string) (*dcli.Container, error) {
+func Run(name string, slugUrl string, process string) (*dcli.Container, error) {
 	docker, err := dcli.NewClient(RUNNER_URL)
 	if err != nil {
 		return nil, err
 	}
+
+	port := strconv.Itoa(getRandomPort())
 
 	opts := dcli.CreateContainerOptions{
 		"",
@@ -82,4 +86,14 @@ func Run(name string, slugUrl string, process string, port string) (*dcli.Contai
 	}
 
 	return docker.InspectContainer(container.ID)
+}
+
+// getRandomPort generates a random int to be used at the TCP port for
+// container communication
+func getRandomPort() (port int) {
+	rand.Seed(time.Now().UnixNano())
+	for port <= 1024 {
+		port = rand.Intn(65534)
+	}
+	return
 }

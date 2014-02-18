@@ -2,7 +2,6 @@ package nginx
 
 import (
 	"fmt"
-	// "log"
 	"os"
 	"os/exec"
 	"text/template"

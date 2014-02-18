@@ -6,35 +6,27 @@ import (
 	"crypto/sha1"
 	"flag"
 	"fmt"
+	dcli "github.com/fsouza/go-dockerclient"
 	"github.com/rochacon/cargo/nginx"
 	"github.com/rochacon/cargo/slug"
 	"log"
-	"math/rand"
 	"os"
-	"strconv"
-	"time"
 )
 
 const IMAGE_CACHE = "/tmp/app-cache"
 
-func getRandomPort() (port int) {
-	rand.Seed(time.Now().UnixNano())
-	for port <= 1024 {
-		port = rand.Intn(65534)
-	}
-	return
-}
-
 func main() {
-	base_domain := flag.String("d", "localhost", "Base domain")
-	bucket_name := flag.String("bucket", "", "AWS S3 bucket name")
 	aws_key := flag.String("aws-key", "", "AWS access key")
 	aws_secret := flag.String("aws-secret", "", "AWS secret key")
+	base_domain := flag.String("d", "localhost", "Base domain")
+	bucket_name := flag.String("bucket", "", "AWS S3 bucket name")
+	s3_endpoint := flag.String("s3-endpoint", "https://s3.amazonaws.com", "AWS S3 API endpoint")
 	flag.Parse()
 
 	slug.AWS_ACCESS_KEY_ID = *aws_key
 	slug.AWS_SECRET_ACCESS_KEY = *aws_secret
 	slug.BUCKET_NAME = *bucket_name
+	slug.S3_ENDPOINT = *s3_endpoint
 
 	if len(flag.Args()) < 4 {
 		flag.Usage()
@@ -51,16 +43,15 @@ func main() {
 	}
 
 	// TODO read Procfile and get processes
-	// processes := []string{"web", "worker"}
+	// processes := []string{"web"}
 	// fmt.Println("-----> Starting containers:", strings.Join(processes, ", "))
 
 	// FIXME run all processes
 	// for _, process := range processes {
-	//   go docker.Run(-d -i -e SLUG_URL="$IMAGE" -e PORT=8000 -p $PORT:8000 flynn/slugrunner start web)
+	//   go docker.Run(app_name, slug_url, process)
 	// }
 
-	var container_port = strconv.Itoa(getRandomPort())
-	container, err := slug.Run(app_name, slug_url, "web", container_port)
+	container, err := slug.Run(app_name, slug_url, "web")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -72,9 +63,10 @@ func main() {
 	var hostname = fmt.Sprintf("%s.%s", app_name_for_url, *base_domain)
 
 	// add container as a server to local NGINX
+	port := getPort(container.NetworkSettings.Ports)
 	err = nginx.AddServer(
 		app_name,
-		[]string{fmt.Sprintf("%s:%s", container.NetworkSettings.IPAddress, container_port)},
+		[]string{fmt.Sprintf("%s:%s", container.NetworkSettings.IPAddress, port)},
 		hostname,
 	)
 	if err != nil {
@@ -85,5 +77,15 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println("-----> http://" + hostname)
+	fmt.Println("-----> Application deployed:")
+	fmt.Println("       http://" + hostname)
+}
+
+// getPort naively retrieve the first port number of a
+// map[dcli.Port][]dcli.PortBinding
+func getPort(ports map[dcli.Port][]dcli.PortBinding) *dcli.Port {
+	for port, _ := range ports {
+		return &port
+	}
+	return nil
 }
