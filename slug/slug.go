@@ -12,6 +12,8 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
+	"sync"
 	"time"
 )
 
@@ -86,6 +88,56 @@ func Run(slugUrl string, cmd ...string) (*dcli.Container, error) {
 	}
 
 	return docker.InspectContainer(container.ID)
+}
+
+// RemoveOthers remove other containers running same slug
+func RemoveOthers(container dcli.Container, image, process string) error {
+	docker, err := dcli.NewClient(RUNNER_ENDPOINT)
+	if err != nil {
+		return err
+	}
+
+	containers, err := docker.ListContainers(dcli.ListContainersOptions{})
+	if err != nil {
+		return err
+	}
+
+	var wg sync.WaitGroup
+
+	for _, c := range containers {
+		if c.ID == container.ID {
+			continue
+		}
+
+		wg.Add(1)
+		go func(id, image string) {
+			defer wg.Done()
+
+			c, err := docker.InspectContainer(id)
+			if err != nil {
+				return
+			}
+
+			mustDie := false
+
+			for _, env := range c.Config.Env {
+				if !strings.HasPrefix(env, "SLUG_URL=") {
+					continue
+				}
+
+				if env == fmt.Sprintf("SLUG_URL=%s", image) {
+					mustDie = true
+				}
+			}
+
+			if mustDie {
+				docker.StopContainer(c.ID, 15)
+			}
+		}(c.ID, image)
+	}
+	wg.Wait()
+
+	return nil
 }
 
 // getRandomPort generates a random int to be used at the TCP port for

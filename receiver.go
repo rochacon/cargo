@@ -78,6 +78,8 @@ func main() {
 		log.Fatal(err)
 	}
 
+	defer slug.RemoveOthers(*container, slug_url, "web")
+
 	fmt.Println("-----> Application deployed")
 	fmt.Println("       http://" + hostname)
 }
