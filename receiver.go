@@ -52,16 +52,16 @@ func main() {
 	//   go docker.Run(app_name, slug_url, process)
 	// }
 
-	container, err := slug.Run(app_name, slug_url, "web")
+	container, err := slug.Run(slug_url, "start", "web")
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// TODO for web processes
 	// TODO inspect container and retrieve IP (no need to expose container port)
-	var app_name_sha1 = sha1.Sum([]byte(app_name))
-	var app_name_for_url = fmt.Sprintf("%x", app_name_sha1)[:10]
-	var hostname = fmt.Sprintf("%s.%s", app_name_for_url, *base_domain)
+	app_name_sha1 := sha1.Sum([]byte(app_name))
+	app_name_for_url := fmt.Sprintf("%x", app_name_sha1)[:10]
+	hostname := fmt.Sprintf("%s.%s", app_name_for_url, *base_domain)
 
 	// add container as a server to local NGINX
 	port := getPort(container.NetworkSettings.Ports)

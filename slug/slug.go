@@ -56,7 +56,7 @@ func Build(name string, tar io.Reader) (string, error) {
 }
 
 // Run runs a slug process
-func Run(name string, slugUrl string, process string) (*dcli.Container, error) {
+func Run(slugUrl string, cmd ...string) (*dcli.Container, error) {
 	docker, err := dcli.NewClient(RUNNER_ENDPOINT)
 	if err != nil {
 		return nil, err
@@ -67,8 +67,8 @@ func Run(name string, slugUrl string, process string) (*dcli.Container, error) {
 	opts := dcli.CreateContainerOptions{
 		"",
 		&dcli.Config{
-			Cmd:       []string{"start", process},
-			Env:       []string{"SLUG_URL=" + slugUrl, "PORT=" + port},
+			Cmd:       cmd,
+			Env:       []string{"PORT=" + port, "SLUG_URL=" + slugUrl},
 			PortSpecs: []string{port + "/tcp"},
 			Image:     "flynn/slugrunner",
 			Tty:       true,
