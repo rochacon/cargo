@@ -9,6 +9,7 @@ import (
 	"launchpad.net/goamz/aws"
 	"launchpad.net/goamz/s3"
 	"math/rand"
+	"net/url"
 	"os"
 	"os/exec"
 	"strconv"
@@ -54,7 +55,7 @@ func Build(name string, tar io.Reader) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%s/%s/%s", S3_ENDPOINT, BUCKET_NAME, key), nil
+	return bucket.SignedURL(key, time.Now().Add(10*time.Second)), nil
 }
 
 // Run runs a slug process
@@ -91,7 +92,9 @@ func Run(slugUrl string, cmd ...string) (*dcli.Container, error) {
 }
 
 // RemoveOthers remove other containers running same slug
-func RemoveOthers(container dcli.Container, image, process string) error {
+func RemoveOthers(container dcli.Container, slugUrl, process string) error {
+	slugUrl = cleanURL(slugUrl)
+
 	docker, err := dcli.NewClient(RUNNER_ENDPOINT)
 	if err != nil {
 		return err
@@ -110,7 +113,7 @@ func RemoveOthers(container dcli.Container, image, process string) error {
 		}
 
 		wg.Add(1)
-		go func(id, image string) {
+		go func(id, slugUrl string) {
 			defer wg.Done()
 
 			c, err := docker.InspectContainer(id)
@@ -125,7 +128,8 @@ func RemoveOthers(container dcli.Container, image, process string) error {
 					continue
 				}
 
-				if env == fmt.Sprintf("SLUG_URL=%s", image) {
+				envSlug := strings.Split(env, "=")[1]
+				if cleanURL(envSlug) == slugUrl {
 					mustDie = true
 				}
 			}
@@ -133,7 +137,7 @@ func RemoveOthers(container dcli.Container, image, process string) error {
 			if mustDie {
 				docker.StopContainer(c.ID, 15)
 			}
-		}(c.ID, image)
+		}(c.ID, slugUrl)
 	}
 	wg.Wait()
 
@@ -148,4 +152,10 @@ func getRandomPort() (port int) {
 		port = rand.Intn(65534)
 	}
 	return
+}
+
+// cleanURL removes query string and fragments from an URL
+func cleanURL(address string) string {
+	u, _ := url.Parse(address)
+	return fmt.Sprintf("%s://%s%s", u.Scheme, u.Host, u.Path)
 }
