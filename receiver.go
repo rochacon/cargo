@@ -11,23 +11,39 @@ import (
 	"github.com/rochacon/cargo/slug"
 	"log"
 	"os"
+	"strings"
 )
 
 const IMAGE_CACHE = "/tmp/app-cache"
 
+// hosts type is used to parse docker hosts flag
+type hosts []string
+
+func (h *hosts) String() string {
+	return strings.Join(*h, ", ")
+}
+
+func (h *hosts) Set(v string) error {
+	*h = strings.Split(v, ",")
+	return nil
+}
+
 func main() {
 	aws_key := flag.String("aws-key", "", "AWS access key")
 	aws_secret := flag.String("aws-secret", "", "AWS secret key")
-	base_domain := flag.String("d", "localhost", "Base domain")
+	base_domain := flag.String("domain", "localhost", "Base domain")
 	bucket_name := flag.String("bucket", "", "AWS S3 bucket name")
-	runner_endpoint := flag.String("runner", "http://127.0.0.1:4243", "Runner Docker API endpoint")
 	s3_endpoint := flag.String("s3-endpoint", "https://s3.amazonaws.com", "AWS S3 API endpoint")
+
+	dockers := hosts{"http://127.0.0.1:4243"}
+	flag.Var(&dockers, "dockers", "Docker nodes endpoints")
+
 	flag.Parse()
 
 	slug.AWS_ACCESS_KEY_ID = *aws_key
 	slug.AWS_SECRET_ACCESS_KEY = *aws_secret
 	slug.BUCKET_NAME = *bucket_name
-	slug.RUNNER_ENDPOINT = *runner_endpoint
+	slug.DOCKER_HOSTS = []string(dockers)
 	slug.S3_ENDPOINT = *s3_endpoint
 
 	if len(flag.Args()) < 4 {

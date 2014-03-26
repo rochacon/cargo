@@ -48,7 +48,7 @@ exec /go/bin/gitreceived \\
         -k /home/git/keys \\
         -r /home/git/repositories \\
         /home/git/.ssh/id_rsa \\
-        "/go/bin/cargo -bucket $BUCKET -d $BASE_DOMAIN -aws-key $AWS_ACCESS_KEY_ID -aws-secret $AWS_SECRET_ACCESS_KEY"
+        "/go/bin/cargo -bucket $BUCKET -domain $BASE_DOMAIN -aws-key $AWS_ACCESS_KEY_ID -aws-secret $AWS_SECRET_ACCESS_KEY -dockers http://127.0.0.1:4243"
 EOF
 start cargo
 

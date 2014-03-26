@@ -11,7 +11,6 @@ import (
 	"math/rand"
 	"net/url"
 	"os"
-	"os/exec"
 	"strconv"
 	"strings"
 	"sync"
@@ -21,46 +20,59 @@ import (
 var AWS_ACCESS_KEY_ID string
 var AWS_SECRET_ACCESS_KEY string
 var BUCKET_NAME string
-var RUNNER_ENDPOINT string
+var DOCKER_HOSTS []string
 var S3_ENDPOINT string
 
 // Build builds the slug with the received tar as content and upload it to S3
 func Build(name string, tar io.Reader) (string, error) {
-	slug := bytes.NewBuffer([]byte{})
-
-	appBuildCache := fmt.Sprintf("/tmp/app-cache/%s", name)
-	os.MkdirAll(appBuildCache, 0700)
-
-	builder := exec.Command("docker", "run",
-		"-i",
-		"-a", "stdin",
-		"-a", "stdout",
-		"-a", "stderr",
-		"-v", fmt.Sprintf("%s:/tmp/cache:rw", appBuildCache),
-		"flynn/slugbuilder",
-		"-")
-	builder.Stderr = os.Stdout
-	builder.Stdout = slug
-	builder.Stdin = tar
-	if err := builder.Run(); err != nil {
-		return "", err
-	}
-
-	var auth = aws.Auth{AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY}
-	var s3conn = s3.New(auth, aws.Region{S3Endpoint: S3_ENDPOINT})
-	var bucket = s3conn.Bucket(BUCKET_NAME)
-	var name_sha1 = sha1.Sum([]byte(name))
-	var key = fmt.Sprintf("%x.tgz", name_sha1[:10])
-	err := bucket.PutReader(key, slug, int64(slug.Len()), "application/tar", "private")
+	docker, err := dcli.NewClient(getRandomServer())
 	if err != nil {
 		return "", err
 	}
-	return bucket.SignedURL(key, time.Now().Add(10*time.Second)), nil
+
+	container, err := docker.CreateContainer(dcli.CreateContainerOptions{
+		"",
+		&dcli.Config{
+			Cmd:			[]string{"-"},
+			Image:			"flynn/slugbuilder",
+			OpenStdin:		true,
+			StdinOnce:		true,
+		},
+	})
+	if err != nil {
+		return "", err
+	}
+
+	err = docker.StartContainer(container.ID, &dcli.HostConfig{})
+	if err != nil {
+		return "", err
+	}
+
+	slug := bytes.NewBuffer([]byte{})
+	err = docker.AttachToContainer(dcli.AttachToContainerOptions{
+		Container:		container.ID,
+		Stream:			true,
+		Stderr:			true,
+		ErrorStream:	os.Stdout,
+		Stdin:			true,
+		InputStream:	tar,
+		Stdout:			true,
+		OutputStream:	slug,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	url, err := upload(name, slug)
+	if err != nil {
+		return "", err
+	}
+	return url, nil
 }
 
 // Run runs a slug process
 func Run(slugUrl string, cmd ...string) (*dcli.Container, error) {
-	docker, err := dcli.NewClient(RUNNER_ENDPOINT)
+	docker, err := dcli.NewClient(getRandomServer())
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +107,7 @@ func Run(slugUrl string, cmd ...string) (*dcli.Container, error) {
 func RemoveOthers(container dcli.Container, slugUrl, process string) error {
 	slugUrl = cleanURL(slugUrl)
 
-	docker, err := dcli.NewClient(RUNNER_ENDPOINT)
+	docker, err := dcli.NewClient(getRandomServer())
 	if err != nil {
 		return err
 	}
@@ -144,6 +156,12 @@ func RemoveOthers(container dcli.Container, slugUrl, process string) error {
 	return nil
 }
 
+// cleanURL removes query string and fragments from an URL
+func cleanURL(address string) string {
+	u, _ := url.Parse(address)
+	return fmt.Sprintf("%s://%s%s", u.Scheme, u.Host, u.Path)
+}
+
 // getRandomPort generates a random int to be used at the TCP port for
 // container communication
 func getRandomPort() (port int) {
@@ -154,8 +172,23 @@ func getRandomPort() (port int) {
 	return
 }
 
-// cleanURL removes query string and fragments from an URL
-func cleanURL(address string) string {
-	u, _ := url.Parse(address)
-	return fmt.Sprintf("%s://%s%s", u.Scheme, u.Host, u.Path)
+// getRandomServer returns a random Docker server from the
+// DOCKER_HOSTS list
+func getRandomServer() string {
+    rand.Seed(time.Now().UnixNano())
+    return DOCKER_HOSTS[rand.Intn(len(DOCKER_HOSTS))]
+}
+
+// upload uploads slug image to AWS S3 storage
+func upload(name string, slug *bytes.Buffer) (string, error) {
+	var auth = aws.Auth{AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY}
+	var s3conn = s3.New(auth, aws.Region{S3Endpoint: S3_ENDPOINT})
+	var bucket = s3conn.Bucket(BUCKET_NAME)
+	var name_sha1 = sha1.Sum([]byte(name))
+	var key = fmt.Sprintf("%x.tgz", name_sha1[:10])
+	err := bucket.PutReader(key, slug, int64(slug.Len()), "application/tar", "private")
+	if err != nil {
+		return "", err
+	}
+	return bucket.SignedURL(key, time.Now().Add(10*time.Second)), nil
 }
