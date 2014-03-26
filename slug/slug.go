@@ -33,10 +33,10 @@ func Build(name string, tar io.Reader) (string, error) {
 	container, err := docker.CreateContainer(dcli.CreateContainerOptions{
 		"",
 		&dcli.Config{
-			Cmd:			[]string{"-"},
-			Image:			"flynn/slugbuilder",
-			OpenStdin:		true,
-			StdinOnce:		true,
+			Cmd:       []string{"-"},
+			Image:     "flynn/slugbuilder",
+			OpenStdin: true,
+			StdinOnce: true,
 		},
 	})
 	if err != nil {
@@ -50,14 +50,14 @@ func Build(name string, tar io.Reader) (string, error) {
 
 	slug := bytes.NewBuffer([]byte{})
 	err = docker.AttachToContainer(dcli.AttachToContainerOptions{
-		Container:		container.ID,
-		Stream:			true,
-		Stderr:			true,
-		ErrorStream:	os.Stdout,
-		Stdin:			true,
-		InputStream:	tar,
-		Stdout:			true,
-		OutputStream:	slug,
+		Container:    container.ID,
+		Stream:       true,
+		Stderr:       true,
+		ErrorStream:  os.Stdout,
+		Stdin:        true,
+		InputStream:  tar,
+		Stdout:       true,
+		OutputStream: slug,
 	})
 	if err != nil {
 		return "", err
@@ -175,8 +175,8 @@ func getRandomPort() (port int) {
 // getRandomServer returns a random Docker server from the
 // DOCKER_HOSTS list
 func getRandomServer() string {
-    rand.Seed(time.Now().UnixNano())
-    return DOCKER_HOSTS[rand.Intn(len(DOCKER_HOSTS))]
+	rand.Seed(time.Now().UnixNano())
+	return DOCKER_HOSTS[rand.Intn(len(DOCKER_HOSTS))]
 }
 
 // upload uploads slug image to AWS S3 storage
