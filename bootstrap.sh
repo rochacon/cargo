@@ -2,18 +2,11 @@
 # This script will setup your server from scratch
 set -e
 
-# FIXME configure these variables
-AWS_ACCESS_KEY_ID=""
-AWS_SECRET_ACCESS_KEY=""
-BASE_DOMAIN="localhost"
-BUCKET=""
-
-# Setup Docker
-curl -sL http://get.docker.io/ | bash
-docker pull flynn/slugbuilder
-docker pull flynn/slugrunner
-echo 'DOCKER_OPTS="-H tcp://127.0.0.1:4243 -H unix:///var/run/docker.sock"' > /etc/default/docker
-restart docker
+# Configure these variables
+AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-""}
+AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-""}
+BASE_DOMAIN=${BASE_DOMAIN:-"localhost"}
+BUCKET=${BUCKET:-""}
 
 # Setup Cargo
 curl -sL https://go.googlecode.com/files/go1.2.linux-amd64.tar.gz | tar xzC /usr/local
@@ -23,6 +16,8 @@ export GOROOT=/usr/local/go
 export GOPATH=/go
 
 apt-get install -yq git bzr
+
+# Install Cargo
 go get -v github.com/flynn/gitreceive-next/gitreceived
 go get -v github.com/rochacon/cargo
 
