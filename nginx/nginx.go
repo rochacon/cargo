@@ -37,7 +37,7 @@ type Upstream struct {
 func AddServer(upstreamname string, servers []string, hostname string) error {
 	t := template.Must(template.New("upstream").Parse(tmpl))
 
-	serverfile := fmt.Sprintf("/home/git/hosts/%s.conf", hostname)
+	serverfile := fmt.Sprintf("/etc/nginx/sites-enabled/%s.conf", hostname)
 	fp, err := os.Create(serverfile)
 	if err != nil {
 		return err
