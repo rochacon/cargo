@@ -8,8 +8,8 @@ AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-""}
 BASE_DOMAIN=${BASE_DOMAIN:-"localhost"}
 BUCKET=${BUCKET:-""}
 
-# Setup Cargo
-curl -sL https://go.googlecode.com/files/go1.2.linux-amd64.tar.gz | tar xzC /usr/local
+# Setup Go
+curl -sL https://go.googlecode.com/files/go1.2.1.linux-amd64.tar.gz | tar xzC /usr/local
 
 export PATH=/usr/local/go/bin:$PATH
 export GOROOT=/usr/local/go
