@@ -18,10 +18,11 @@ else
     ssh-keygen -t rsa -f $CARGO_PRIVATE_KEY_FILENAME -N ''
 fi
 
+nginx  # run NGINX in background (default conf)
 /usr/local/bin/gitreceived \
     -p 22 \
     -k /etc/cargo/keys \
     -r /etc/cargo/repositories \
     "$CARGO_PRIVATE_KEY_FILENAME" \
-    "/usr/local/bin/cargo -bucket '$BUCKET' -domain '$CARGO_BASE_DOMAIN' -aws-key '$AWS_ACCESS_KEY_ID' -aws-secret '$AWS_SECRET_ACCESS_KEY' -dockers '$DOCKER_HOSTS'"
+    "/usr/local/bin/cargo -bucket '$BUCKET' -domain '$CARGO_BASE_DOMAIN' -aws-key '$AWS_ACCESS_KEY_ID' -aws-secret '$AWS_SECRET_ACCESS_KEY'" # -dockers \"$DOCKER_HOSTS\" -s3-endpoint \"$S3_ENDPOINT\""
     # "/usr/local/bin/cargo -config /etc/cargo.json"
