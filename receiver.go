@@ -1,5 +1,5 @@
-// Receiver for flynn/gitreceive-next
-// receiver-script SSH_USER REPO KEYNAME FINGERPRINT
+// Receiver for flynn/gitreceived
+// receiver $PATH $COMMIT
 package main
 
 import (
@@ -46,7 +46,7 @@ func main() {
 	slug.DOCKER_HOSTS = []string(dockers)
 	slug.S3_ENDPOINT = *s3_endpoint
 
-	if len(flag.Args()) < 4 {
+	if len(flag.Args()) < 2 {
 		flag.Usage()
 		os.Exit(1)
 	}
