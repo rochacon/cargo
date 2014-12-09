@@ -38,6 +38,7 @@ func Build(name string, tar io.Reader) (string, error) {
 			OpenStdin: true,
 			StdinOnce: true,
 		},
+		nil,
 	})
 	if err != nil {
 		return "", err
@@ -88,6 +89,7 @@ func Run(slugUrl string, cmd ...string) (*dcli.Container, error) {
 			Image:     "flynn/slugrunner",
 			Tty:       true,
 		},
+		nil,
 	}
 
 	container, err := docker.CreateContainer(opts)
