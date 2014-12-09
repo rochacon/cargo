@@ -19,10 +19,9 @@ else
 fi
 
 nginx  # run NGINX in background (default conf)
-/usr/local/bin/gitreceived \
+/go/bin/gitreceived \
     -p 22 \
-    -k /etc/cargo/keys \
+    -k "$CARGO_PRIVATE_KEY_FILENAME" \
     -r /etc/cargo/repositories \
-    "$CARGO_PRIVATE_KEY_FILENAME" \
-    "/usr/local/bin/cargo -bucket '$BUCKET' -domain '$CARGO_BASE_DOMAIN' -aws-key '$AWS_ACCESS_KEY_ID' -aws-secret '$AWS_SECRET_ACCESS_KEY'" # -dockers \"$DOCKER_HOSTS\" -s3-endpoint \"$S3_ENDPOINT\""
-    # "/usr/local/bin/cargo -config /etc/cargo.json"
+    "/usr/bin/yes" \
+    "/usr/local/bin/cargo -bucket '$BUCKET' -domain '$CARGO_BASE_DOMAIN' -aws-key '$AWS_ACCESS_KEY_ID' -aws-secret '$AWS_SECRET_ACCESS_KEY' -dockers \"$DOCKER_HOSTS\" -s3-endpoint \"$S3_ENDPOINT\""
